@@ -1,0 +1,20 @@
+# Files #
+############
+venv/
+test/
+env/
+.vscode/
+__pycache__/
+
+# Packages #
+############
+*.zip
+*.rar
+
+# Logs and databases #
+######################
+*.log
+
+# OS generated files #
+######################
+.DS_Store
