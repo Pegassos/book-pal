@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from lib.firebase import db
+from lib.firebase import db, initialize_book_doc
 from firebase_admin import firestore 
 
 from ..models.review import ReviewModel
@@ -28,22 +28,27 @@ async def create_review(review: ReviewModel, user:str = Depends(get_current_user
     u'createdAt': firestore.SERVER_TIMESTAMP
   }
 
-  book_fields = {
-    u'favoriteCount': 0,
-    u'isRead': 0,
-    u'isReading': 0
-  }
-
   # Set user review subCollection
   user_ref = db.collection(u'users').document(uid).collection(u'reviews').document()
   user_ref.set(review_data)
 
-  # Set book initial fields
+  # Set book review collection
   book_ref = db.collection(u'books').document(review.isbn)
-  book_ref.set(book_fields)
+  
+  # Set book initial attributes if doc doesnt exist
+  initialize_book_doc(book_ref)
+  # book_doc = book_ref.get()
+  # if not book_doc.exists:
+  #   book_fields = {
+  #     u'favoriteCount': 0,
+  #     u'readCount': 0,
+  #     u'readingCount': 0
+  #   }
+  #   book_ref.set(book_fields)
+
   # Set book review subCollection
   book_ref.collection(u'reviews').document(user_ref.id).set(review_data)
-
+  
   return {
     'uid': uid, 
     'review': review,

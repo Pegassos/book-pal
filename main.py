@@ -8,6 +8,8 @@ from lib.firebase import defaul_app
 # Init FastApi server
 app = FastAPI()
 
+# venv\scripts\activate && uvicorn main:app --reload
+
 # Init Firebase default app
 # cred = credentials.Certificate(FIREBASE_SERVICE_ACCOUNT_PATH)
 # default_app = firebase_admin.initialize_app(cred)
