@@ -5,7 +5,7 @@ from pandas import array
 
 from ..models.user import EditUserModel, CreateUserModel
 from src.models.favorite import FavoriteModel
-from src.models.readingList import readingListsData
+from src.models.readingList import ManageReadingListModel
 from utility.utils import handle_exception
 from lib.firebase import db, initialize_book_doc
 from lib.dependencies import get_current_user
@@ -21,12 +21,12 @@ router = APIRouter(
 async def root():
   return {'index -- User'}
 
-@router.get('/{uid}')
-async def get_user(uid: str):
-  try:
-    user = auth.get_user(uid)
-  except Exception as e:
-    handle_exception(e)
+# @router.get('/{uid}')
+# async def get_user(uid: str):
+#   try:
+#     user = auth.get_user(uid)
+#   except Exception as e:
+#     handle_exception(e)
   
   return user
 
@@ -129,13 +129,13 @@ async def toggle_favorite(favorite: FavoriteModel, user: str = Depends(get_curre
   user_ref = db.collection('users').document(uid)
 
   # Check if book is already in the array
-  book_is_favorite = user_ref.get().to_dict()['favoriteCount'].__contains__(isbn)
+  book_is_favorite = user_ref.get().to_dict()['favorites'].__contains__(isbn)
   # Calculate value for firestore method (increment +1, decrement -1) - Used in book update below
   count = -1 if book_is_favorite else 1
   
   # Update user data
   user_data = {
-    u'favoriteCount': firestore.ArrayRemove([isbn]) if book_is_favorite else firestore.ArrayUnion([isbn])
+    u'favorites': firestore.ArrayRemove([isbn]) if book_is_favorite else firestore.ArrayUnion([isbn])
   }
   batch.update(user_ref, user_data)
 
@@ -150,7 +150,7 @@ async def toggle_favorite(favorite: FavoriteModel, user: str = Depends(get_curre
   }
   batch.update(book_ref, data)
 
-
+  # Commit changes
   batch.commit()
 
   return {
@@ -160,7 +160,7 @@ async def toggle_favorite(favorite: FavoriteModel, user: str = Depends(get_curre
   }
 
 @router.post('/manageReadingLists')
-async def manage_reading_lists(data: readingListsData, user: str = Depends(get_current_user)):
+async def manage_reading_lists(data: ManageReadingListModel, user: str = Depends(get_current_user)):
   uid = user['uid']
   isbn = data.isbn
   isRead = data.isRead
@@ -170,47 +170,83 @@ async def manage_reading_lists(data: readingListsData, user: str = Depends(get_c
     u'isbn': isbn,
     u'isRead': isRead
   }
-  # book data
-  # For init book doc if necessary
-  readCount = 1 if isRead else 0
-  readingCount = 0 if isRead else 1
-  book_data = {
-    u'readCount': firestore.Increment(readCount),
-    u'readingCount': firestore.Increment(readingCount)
-  }
-  # still need to handle counters when removing book from lists
+  # book data is handled depending on each case (set, update, delete)
 
+  # firestore batch instance
   batch = db.batch()
 
-  # User ---------------------------
+  # User ref ---------------------------
   user_ref = db.collection(u'users').document(uid).collection(u'readingLists')
   user_lists_ref = user_ref.document(isbn)
-  # Book ---------------------------
+  # Book ref ---------------------------
   book_ref = db.collection(u'books').document(isbn)
-  # Initi book doc if not exist
+
+  # Init book doc if not exist
+  readCount = 1 if isRead else 0
+  readingCount = 0 if isRead else 1
   initialize_book_doc(book_ref, readCount=readCount, readingCount=readingCount)
 
   if user_lists_ref.get().exists:
-    if data.removerFromLists:
+    if data.delete:
+      operation = 'Delete'
       # Delete doc from collection
       batch.delete(user_lists_ref)
+      # Decrement counter in book doc
+      if data.currentIsRead:
+        book_data = { u'readCount': firestore.Increment(-1) }
+      else:
+        book_data = { u'readingCount': firestore.Increment(-1) }
+      batch.update(book_ref, book_data)
+
     else:
+      operation = 'Update'
       # Update doc in user
       batch.update(user_lists_ref, user_data)
       # Increment/Decrement counters in book
+      if data.currentIsRead:
+        book_data = {
+          u'readCount': firestore.Increment(-1),
+          u'readingCount': firestore.Increment(1)
+        }
+      else:
+        book_data = {
+          u'readCount': firestore.Increment(1),
+          u'readingCount': firestore.Increment(-1)
+        }
       batch.update(book_ref, book_data)
   else:
+    operation = 'Set'
     # Set user doc
     batch.set(user_lists_ref, user_data)
     # Increment/Decrement counters in book
+    if isRead:
+      book_data = { u'readCount': firestore.Increment(1) }
+    else:
+      book_data = { u'readingCount': firestore.Increment(1) }
     batch.update(book_ref, book_data)
-  
+
   # Commit changes to db
   batch.commit()  
   
   return {
     'uid': uid,
-    'data': data
+    'data': data,
+    'operation': operation
+  }
+
+
+@router.get('/readingLists')
+def get_reading_lists(isRead: bool, user: str = Depends(get_current_user)):
+  uid = user['uid']
+
+  readingList_ref = db.collection(u'users').document(uid).collection(u'readingLists')
+  docs =  readingList_ref.where(u'isRead', u'==', isRead).get()
+  readingLists = [doc.to_dict()['isbn'] for doc in docs]
+
+  return {
+    'uid': uid,
+    'isRead': isRead,
+    'readingLists':  readingLists
   }
 
 

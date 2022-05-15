@@ -20,9 +20,9 @@ async def get_book(isbn: str):
 
   # Book reviews
   reviews_ref = book_ref.collection(u'reviews')
-  reviews_docs = reviews_ref.get()
-  # Get all reviews for the book
-  reviews = {doc.id: doc.to_dict() for doc in reviews_docs}
+  # Get all reviews for the book oredered by createdat
+  reviews_docs = reviews_ref.order_by(u'createdAt').get()
+  reviews = [doc.to_dict() for doc in reviews_docs]
 
   return {
     'isbn': isbn,
