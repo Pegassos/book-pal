@@ -8,6 +8,6 @@ FIREBASE_CONFIG = {
   "measurementId": "G-82TN91X2ES"
 }
 
-FIREBASE_SERVICE_ACCOUNT_PATH = "./env/pfa-book-recommendation-firebase-adminsdk-kw7mc-ce3d44bce0.json"
+FIREBASE_SERVICE_ACCOUNT_PATH = "./utility/pfa-book-recommendation-firebase-adminsdk-kw7mc-ce3d44bce0.json"
 
 ORIGINS = ["http://localhost:8005"] 

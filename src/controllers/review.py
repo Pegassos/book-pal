@@ -37,14 +37,6 @@ async def create_review(review: ReviewModel, user:str = Depends(get_current_user
   
   # Set book initial attributes if doc doesnt exist
   initialize_book_doc(book_ref)
-  # book_doc = book_ref.get()
-  # if not book_doc.exists:
-  #   book_fields = {
-  #     u'favoriteCount': 0,
-  #     u'readCount': 0,
-  #     u'readingCount': 0
-  #   }
-  #   book_ref.set(book_fields)
 
   # Set book review subCollection
   book_ref.collection(u'reviews').document(user_ref.id).set(review_data)
