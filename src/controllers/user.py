@@ -30,21 +30,31 @@ async def root():
   
   return user
 
-@router.post('/create')
-async def create_user(user: CreateUserModel):
+@router.get('/user/{uid}')
+async def get_user_by_uid(uid: str):
+  ref = db.collection(u'users').document(uid)
+  doc = ref.get()
+
+  return {
+    'uid': uid,
+    'data': doc.to_dict()
+  }
+
+@router.post('/create/{uid}')
+async def create_user(uid:str, user: CreateUserModel):
   """Create new user in Firebase"""
    
   try:
     # Create new user in Athentication
-    created_user = auth.create_user(
-      email = user.email,
-      # email_verified=False,
-      password = user.password,
-      # display_name='Create User 1',
-      disabled=False
-    )
+    # created_user = auth.create_user(
+    #   email = user.email,
+    #   # email_verified=False,
+    #   password = user.password,
+    #   # display_name='Create User 1',
+    #   disabled=False
+    # )
 
-    uid = created_user.uid
+    # uid = created_user.uid
     
     # Create new user in Firestore with uid
     user_ref = db.collection(u'users').document(uid)
@@ -61,7 +71,7 @@ async def create_user(user: CreateUserModel):
   except Exception as e:
     handle_exception(e)
 
-  return {'user': user, 'created_user': created_user, 'uid': uid}
+  return {'user': user, 'uid': uid}
 
 @router.put('/edit')
 async def edit_profile(user: EditUserModel, current_user: str = Depends(get_current_user)):
@@ -234,7 +244,6 @@ async def manage_reading_lists(data: ManageReadingListModel, user: str = Depends
     'operation': operation
   }
 
-
 @router.get('/readingLists')
 def get_reading_lists(isRead: bool, user: str = Depends(get_current_user)):
   uid = user['uid']
@@ -248,7 +257,6 @@ def get_reading_lists(isRead: bool, user: str = Depends(get_current_user)):
     'isRead': isRead,
     'readingLists':  readingLists
   }
-
 
 
 # Helper functions ------------------ 
