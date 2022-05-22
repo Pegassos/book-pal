@@ -12,8 +12,30 @@ router = APIRouter(
 )
 
 @router.get('/')
-async def root():
-  return {'Index -- Books'}
+async def root(search: str):
+  """
+    search: search input from user
+    search in BOOKS for books containing search string and return isbn array
+  """
+  pickle_data = pickle.load(open('lib/pickle_data', 'rb'))
+  BOOK_PIVOT, BOOK_ISBN_LIST, BOOKS = pickle_data
+  
+  # get isbn for books whom title contains search string 
+  array = BOOKS[BOOKS['title'].str.contains(search)]['ISBN'].to_dict()
+  result = [isbn for isbn in array.values()]
+
+  # filter result for isbn in BOOK_ISBN_LIST
+  for isbn in result:
+    if not isbn in BOOK_ISBN_LIST:
+      result.remove(isbn)
+  
+  return {
+    'search': search,
+    "length": len(result),
+    'data': result,
+  }
+
+
 
 @router.get('/{isbn}')
 async def get_book(isbn: str):

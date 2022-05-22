@@ -22,4 +22,4 @@ pickle_model.close()
 # Save the data ---------------------
 pickle_data = open('lib/pickle_data', 'wb')
 pickle.dump([book_pivot, books_isbn_list, books], pickle_data)
-pickle_model.close()
+pickle_data.close()
