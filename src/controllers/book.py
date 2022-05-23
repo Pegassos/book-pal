@@ -61,7 +61,7 @@ async def get_book(isbn: str):
     'recommendations': recommendations
   }
 
-@router.get('/array/get')
+@router.post('/array/get')
 async def get_recommendation_for_array(isbnArray: IsbnArrayModel):
   # Get Recommendations
   pickle_data = pickle.load(open('lib/pickle_data', 'rb'))
@@ -79,14 +79,3 @@ async def get_recommendation_for_array(isbnArray: IsbnArrayModel):
     'isbnArray': isbnArray,
     'recommendations': unique_set_recommendation
   }
-
-# @router.get('/reviews/{isbn}')
-# async def get_reviews(isbn: str):
-#   # Get reviews ref for book with isbn
-#   ref = db.collection(u'books').document(isbn).collection(u'reviews')
-#   docs = ref.get()
-
-#   # Get all reviews for the book
-#   reviews = {doc.id: doc.to_dict() for doc in docs}
-  
-#   return {'reviews': reviews}
